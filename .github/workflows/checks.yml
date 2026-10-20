@@ -24,7 +24,9 @@ jobs:
         run: sha256sum --check SHA256SUMS.txt
       - name: Bash syntax
         run: |
-          for file in install.sh installer/*.sh; do bash -n "$file"; done
+          bash -n install.sh
+          bash -n installer/network.sh
+          bash -n installer/menu.sh
       - name: Python and HTTP integration
         run: |
           python -m py_compile src/chat.py src/benchmark.py scripts/build.py
