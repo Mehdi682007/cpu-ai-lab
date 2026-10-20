@@ -38,9 +38,9 @@ for _ in $(seq 1 60); do
   sleep 1
 done
 [[ "$READY" -eq 1 ]] || fail "Ollama did not start. Run: journalctl -u ollama -n 80"
-echo "Downloading $MODEL (already downloaded layers are reused)..."
+echo "📥 Downloading $MODEL (already downloaded layers are reused)..."
 "$OLLAMA_BIN" pull "$MODEL"
-echo "Running a real CPU inference check..."
+echo "🧪 Running a real CPU inference check..."
 CPU_AI_MODEL="$MODEL" CPU_AI_THREADS="$(nproc)" python3 - <<'PY'
 import json, os, urllib.request
 data = {"model": os.environ["CPU_AI_MODEL"], "prompt": "Reply with the word READY.",
@@ -61,10 +61,10 @@ for _ in $(seq 1 30); do
 done
 [[ "$READY" -eq 1 ]] || fail "Chat health check failed. Run: journalctl -u cpu-ai-web -n 80"
 echo
-echo "Installation and real inference test completed."
+echo "✅ Installation and real inference test completed."
 if [[ "$SCRIPT_PATH" != /usr/local/bin/cpu-ai ]]; then
   install -m 755 "$SCRIPT_PATH" /usr/local/bin/cpu-ai
 fi
 configure_access "$SAVED_ACCESS_MODE"
-echo "Open the management menu anytime: sudo cpu-ai"
+echo "🎛️  Open the management menu anytime: sudo cpu-ai"
 }

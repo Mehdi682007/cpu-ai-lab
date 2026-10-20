@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# CPU AI Lab 0.3.0 - menu-driven, CPU-only personal AI server.
+# CPU AI Lab 0.3.1 - menu-driven, CPU-only personal AI server.
 # Download this file, inspect it, then run: sudo bash install-cpu-ai.sh
 set -Eeuo pipefail
 export LC_ALL=C
@@ -7,12 +7,13 @@ export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 umask 022
 APP=/opt/cpu-ai
 OLLAMA_PIN=0.40.6
-fail() { printf '\nERROR: %s\n' "$*" >&2; exit 1; }
+fail() { printf '\n❌ ERROR: %s\n' "$*" >&2; exit 1; }
 [[ $EUID -eq 0 ]] || fail "Run with sudo bash $0"
-APP_VERSION=0.3.0
+APP_VERSION=0.3.1
 SCRIPT_PATH=$(readlink -f "${BASH_SOURCE[0]}")
 
 install_app() {
+show_banner
 command -v flock >/dev/null || fail "flock (util-linux) is required."
 exec 9>/run/cpu-ai-install.lock
 flock -n 9 || fail "Another CPU AI installer is running."
@@ -80,7 +81,7 @@ case "$MODEL" in
     ;;
   *) fail "Supported presets: qwen2.5:0.5b or qwen2.5:1.5b." ;;
 esac
-echo "CPU AI Lab | CPU threads: $(nproc) | RAM: $((TOTAL_KB/1024)) MiB | Model: $MODEL"
+echo "🔎 CPU AI Lab | CPU threads: $(nproc) | RAM: $((TOTAL_KB/1024)) MiB | Model: $MODEL"
 if [[ "$PACKAGE_FAMILY" == apt ]]; then
   export DEBIAN_FRONTEND=noninteractive
   apt-get -o DPkg::Lock::Timeout=120 update -qq

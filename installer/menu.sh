@@ -1,7 +1,7 @@
 is_installed() { [[ -f "$APP/.managed" && -f "$APP/chat.py" ]]; }
 require_app() { is_installed || fail "CPU AI Lab is not installed. Choose Install first."; }
 status_app() {
-  echo "CPU AI Lab - status"
+  echo "📊 CPU AI Lab - status"
   if is_installed; then
     echo "Installed version: $(cat "$APP/version" 2>/dev/null || echo legacy)"
     sed -n '/^CPU_AI_MODEL=/p; /^CPU_AI_THREADS=/p; /^CPU_AI_CONTEXT=/p' "$APP/config.env"
@@ -22,7 +22,7 @@ restart_app() {
   require_app
   systemctl restart ollama cpu-ai-web
   if grep -q "^CPU_AI_ACCESS_MODE=public$" "$APP/config.env"; then systemctl restart cpu-ai-proxy; fi
-  echo "Services restarted. Check health with option 3."
+  echo "✅ Services restarted. Check health with option 3."
 }
 uninstall_app() {
   [[ -f "$APP/.managed" && ! -L "$APP" ]] || fail "No managed installation found."
@@ -42,16 +42,16 @@ uninstall_app() {
   rm -f -- /etc/systemd/system/cpu-ai-web.service /etc/systemd/system/cpu-ai-proxy.service /usr/local/bin/cpu-ai-benchmark /usr/local/bin/cpu-ai
   for FILE in chat.py index.html login.html benchmark.py config.env version; do rm -f -- "$APP/$FILE"; done
   systemctl daemon-reload
-  echo "CPU AI Lab removed. Downloaded models/runtime and the ownership marker are retained."
+  echo "✅ CPU AI Lab removed. Downloaded models/runtime and the ownership marker are retained."
   echo "Run your saved installer and choose Install to reinstall."
 }
 show_menu() {
   [[ -t 0 ]] || fail "Interactive terminal required. Use --install, --update, --status, --restart, --logs or --uninstall."
   while true; do
-    printf '\n  CPU AI LAB  |  v%s\n' "$APP_VERSION"
+    show_banner
     printf '  --------------------------------------\n'
-    printf '  1) Install\n  2) Update from GitHub\n  3) Status & connection info\n  4) Restart services\n  5) Uninstall (keep downloaded models)\n  6) Recent logs\n  7) Public / local access profile\n  8) Show private web login\n  0) Exit\n\n'
-    read -r -p '  Choose an option: ' CHOICE || return 0
+    printf '  1) 📦 Install\n  2) 🔄 Update from GitHub\n  3) 📊 Status & connection info\n  4) 🔁 Restart services\n  5) 🗑️  Uninstall (keep downloaded models)\n  6) 📋 Recent logs\n  7) 🌐 Public / local access profile\n  8) 🔐 Show private web login\n  0) 🚪 Exit\n\n'
+    read -r -p '  👉 Choose an option: ' CHOICE || return 0
     case "$CHOICE" in
       1) ACTION=--install ;;
       2) ACTION=--update ;;
@@ -67,7 +67,7 @@ show_menu() {
       0) return 0 ;;
       *) echo 'Choose 0 to 8.'; continue ;;
     esac
-    if bash "$SCRIPT_PATH" "$ACTION"; then :; else echo 'Operation failed. Read the error above.'; fi
+    if bash "$SCRIPT_PATH" "$ACTION"; then :; else echo '❌ Operation failed. Read the error above.'; fi
     read -r -p 'Press Enter to return to the menu...' _ || return 0
   done
 }

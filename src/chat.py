@@ -14,7 +14,7 @@ import urllib.request
 from pathlib import Path
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
-VERSION = '0.3.0'
+VERSION = '0.3.1'
 MODEL = os.environ.get('CPU_AI_MODEL', 'qwen2.5:1.5b')
 THREADS = max(1, int(os.environ.get('CPU_AI_THREADS', '2')))
 CONTEXT = max(2048, min(8192, int(os.environ.get('CPU_AI_CONTEXT', '4096'))))
