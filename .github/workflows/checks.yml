@@ -20,6 +20,8 @@ jobs:
         run: |
           python scripts/build.py
           git diff --exit-code -- install.sh
+      - name: Installer checksum
+        run: sha256sum --check SHA256SUMS.txt
       - name: Bash syntax
         run: |
           for file in install.sh installer/*.sh; do bash -n "$file"; done

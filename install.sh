@@ -729,7 +729,7 @@ configure_access() {
       sleep 1
     done
     [[ "$LOCAL_READY" == 1 ]] || fail 'Local chat failed to start.'
-    echo 'Local profile: http://localhost:5555' 
+    echo 'Local profile: http://localhost:5555'
     return
   fi
   local PUBLIC_ADDRESS="${PUBLIC_IP:-}"
