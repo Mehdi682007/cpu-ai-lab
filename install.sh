@@ -860,11 +860,11 @@ EOF
   echo 'View your private login with: sudo cpu-ai --access'
 }
 update_from_github() {
-  local UPDATE_TMP; UPDATE_TMP=$(mktemp -d)
-  trap 'rm -rf -- "${UPDATE_TMP:?}"' EXIT
+  CPU_AI_UPDATE_TMP=$(mktemp -d)
+  trap 'rm -rf -- "${CPU_AI_UPDATE_TMP:?}"' EXIT
   curl -fsSL --retry 2 --connect-timeout 15 --max-time 45 \
-    https://api.github.com/repos/Mehdi682007/cpu-ai-lab/releases/latest -o "$UPDATE_TMP/release.json"
-  python3 - "$UPDATE_TMP/release.json" > "$UPDATE_TMP/urls" <<'PY'
+    https://api.github.com/repos/Mehdi682007/cpu-ai-lab/releases/latest -o "$CPU_AI_UPDATE_TMP/release.json"
+  python3 - "$CPU_AI_UPDATE_TMP/release.json" > "$CPU_AI_UPDATE_TMP/urls" <<'PY'
 import json,re,sys
 release=json.load(open(sys.argv[1]))
 tag=release['tag_name']
@@ -877,10 +877,10 @@ for name in ('install.sh','SHA256SUMS.txt'):
     print(url)
 PY
   local INSTALL_URL CHECKSUM_URL
-  INSTALL_URL=$(sed -n '1p' "$UPDATE_TMP/urls"); CHECKSUM_URL=$(sed -n '2p' "$UPDATE_TMP/urls")
-  curl -fsSL --retry 2 --max-time 90 "$INSTALL_URL" -o "$UPDATE_TMP/install.sh"
-  curl -fsSL --retry 2 --max-time 45 "$CHECKSUM_URL" -o "$UPDATE_TMP/SHA256SUMS.txt"
-  python3 - "$UPDATE_TMP" <<'PY'
+  INSTALL_URL=$(sed -n '1p' "$CPU_AI_UPDATE_TMP/urls"); CHECKSUM_URL=$(sed -n '2p' "$CPU_AI_UPDATE_TMP/urls")
+  curl -fsSL --retry 2 --max-time 90 "$INSTALL_URL" -o "$CPU_AI_UPDATE_TMP/install.sh"
+  curl -fsSL --retry 2 --max-time 45 "$CHECKSUM_URL" -o "$CPU_AI_UPDATE_TMP/SHA256SUMS.txt"
+  python3 - "$CPU_AI_UPDATE_TMP" <<'PY'
 import hashlib,re,sys
 from pathlib import Path
 folder=Path(sys.argv[1]);matches=[]
@@ -890,7 +890,7 @@ for line in (folder/'SHA256SUMS.txt').read_text().splitlines():
 if len(matches)!=1 or hashlib.sha256((folder/'install.sh').read_bytes()).hexdigest()!=matches[0]:raise SystemExit('Installer SHA-256 check failed')
 print('GitHub release installer checksum verified.')
 PY
-  bash "$UPDATE_TMP/install.sh" --apply-update
+  bash "$CPU_AI_UPDATE_TMP/install.sh" --apply-update
 }
 
 is_installed() { [[ -f "$APP/.managed" && -f "$APP/chat.py" ]]; }
