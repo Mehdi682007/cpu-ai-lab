@@ -1,0 +1,39 @@
+name: Checks
+on: [push, pull_request]
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python: ['3.9', '3.12']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Rebuild standalone installer
+        run: |
+          python scripts/build.py
+          git diff --exit-code -- install.sh
+      - name: Bash syntax
+        run: |
+          for file in install.sh installer/*.sh; do bash -n "$file"; done
+      - name: Python and HTTP integration
+        run: |
+          python -m py_compile src/chat.py src/benchmark.py scripts/build.py
+          python tests/test_http.py
+      - name: Frontend syntax
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          for name in ('index', 'login'):
+              script=Path('src/'+name+'.html').read_text().split('<script>')[1].split('</script>')[0]
+              Path('/tmp/cpu-ai-'+name+'.js').write_text(script)
+          PY
+          node --check /tmp/cpu-ai-index.js
+          node --check /tmp/cpu-ai-login.js
