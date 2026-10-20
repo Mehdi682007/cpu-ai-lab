@@ -7,5 +7,6 @@ for name in ('chat.py','index.html','login.html','benchmark.py'):
     parts.extend([f'\ncat > "$APP/{name}" <<\'CPU_AI_PYTHON\'\n',
                   (root/'src'/name).read_text(encoding='utf-8'),'\nCPU_AI_PYTHON\n'])
 parts.extend((root/'installer'/name).read_text(encoding='utf-8') for name in ('tail.sh','network.sh','menu.sh'))
-(root/'install.sh').write_text('\n'.join(parts),encoding='utf-8',newline='\n')
+with (root/'install.sh').open('w',encoding='utf-8',newline='\n') as target:
+    target.write('\n'.join(parts))
 print('Built install.sh')
