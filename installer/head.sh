@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# CPU AI Lab 0.3.2 - menu-driven, CPU-only personal AI server.
+# CPU AI Lab 0.3.3 - menu-driven, CPU-only personal AI server.
 # Download this file, inspect it, then run: sudo bash install-cpu-ai.sh
 set -Eeuo pipefail
 export LC_ALL=C
@@ -9,7 +9,7 @@ APP=/opt/cpu-ai
 OLLAMA_PIN=0.40.6
 fail() { printf '\n❌ ERROR: %s\n' "$*" >&2; exit 1; }
 [[ $EUID -eq 0 ]] || fail "Run with sudo bash $0"
-APP_VERSION=0.3.2
+APP_VERSION=0.3.3
 SCRIPT_PATH=$(readlink -f "${BASH_SOURCE[0]}")
 
 install_app() {

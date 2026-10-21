@@ -10,6 +10,9 @@ cat > "$FIXTURE/install.sh" <<'SH'
 set -euo pipefail
 [[ "$1" == --apply-update ]]
 printf '%s' "$(dirname -- "$0")" > "$CPU_AI_TEST_CAPTURE"
+SCRIPT_PATH=$(readlink -f "${BASH_SOURCE[0]}")
+source "$ROOT/installer/network.sh"
+sync_update_launcher
 touch "$CPU_AI_TEST_MARKER"
 SH
 (cd "$FIXTURE" && sha256sum install.sh > SHA256SUMS.txt)
@@ -20,7 +23,11 @@ export ROOT FIXTURE
 cat > "$FIXTURE/run.sh" <<'SH'
 #!/usr/bin/env bash
 set -euo pipefail
+# CPU AI Lab updater test launcher
+APP_VERSION=0.0.1
+SCRIPT_PATH=$(readlink -f "${BASH_SOURCE[0]}")
 source "$ROOT/installer/network.sh"
+# update_from_github() is provided by the sourced module.
 curl() {
   local OUTPUT='' URL=''
   while [[ $# -gt 0 ]]; do
@@ -35,10 +42,32 @@ curl() {
 }
 update_from_github
 SH
+cp "$FIXTURE/run.sh" "$FIXTURE/run-original.sh"
 bash "$FIXTURE/run.sh"
 [[ -f "$CPU_AI_TEST_MARKER" ]]
 [[ ! -d "$(cat "$CPU_AI_TEST_CAPTURE")" ]]
-echo 'PASS: verified release applies and temporary directory is removed after return'
+cmp "$FIXTURE/run.sh" "$FIXTURE/install.sh"
+echo 'PASS: verified release applies, downloaded launcher refreshes and temporary directory is removed'
+# An old release invokes its downloaded updater without passing the source path.
+cat > "$FIXTURE/legacy.sh" <<'SH'
+#!/usr/bin/env bash
+# CPU AI Lab legacy test launcher
+APP_VERSION=0.0.1
+update_from_github() { bash "$FIXTURE/install.sh" --apply-update; }
+update_from_github
+SH
+chmod 750 "$FIXTURE/legacy.sh"
+env -u CPU_AI_UPDATE_SOURCE bash "$FIXTURE/legacy.sh" --update
+cmp "$FIXTURE/legacy.sh" "$FIXTURE/install.sh"
+[[ "$(stat -c '%a' "$FIXTURE/legacy.sh")" == 750 ]]
+echo 'PASS: upgrades from legacy launchers repair the original file and preserve permissions'
+# A lookalike path without our installer signature must never be overwritten.
+printf 'unrelated file\n' > "$FIXTURE/unrelated.sh"
+CPU_AI_UPDATE_SOURCE="$FIXTURE/unrelated.sh" bash "$FIXTURE/install.sh" --apply-update
+[[ "$(cat "$FIXTURE/unrelated.sh")" == 'unrelated file' ]]
+echo 'PASS: unrelated files are not replaced'
+# Restore the original wrapper for the rejection test.
+cp "$FIXTURE/run-original.sh" "$FIXTURE/run.sh"
 rm "$CPU_AI_TEST_MARKER"
 printf '%064d  install.sh\n' 0 > "$FIXTURE/SHA256SUMS.txt"
 if bash "$FIXTURE/run.sh"; then echo 'Bad checksum unexpectedly accepted' >&2;exit 1;fi

@@ -172,6 +172,46 @@ EOF
   echo "Public chat: https://$PUBLIC_ADDRESS:5555"
   echo 'View your private login with: sudo cpu-ai --access'
 }
+sync_update_launcher() {
+  # Recover the caller for upgrades from releases that did not pass its path.
+  python3 - "$SCRIPT_PATH" "$PPID" "${CPU_AI_UPDATE_SOURCE:-}" <<'PY'
+import os,re,stat,sys,tempfile
+from pathlib import Path
+source=Path(sys.argv[1]).resolve()
+try:
+    candidate=sys.argv[3]
+    if not candidate:
+        args=Path('/proc/'+sys.argv[2]+'/cmdline').read_bytes().split(b'\0')
+        if len(args)<3 or Path(os.fsdecode(args[0])).name not in ('bash','bash.exe') or b'--update' not in args:
+            raise ValueError('No Bash updater parent')
+        candidate=os.fsdecode(args[1])
+        if not os.path.isabs(candidate):
+            candidate=os.path.join(os.readlink('/proc/'+sys.argv[2]+'/cwd'),candidate)
+    target=Path(candidate).resolve(strict=True)
+    if target==source or target==Path('/usr/local/bin/cpu-ai'):sys.exit(0)
+    metadata=target.stat()
+    if not stat.S_ISREG(metadata.st_mode):raise ValueError('Not a regular installer')
+    content=target.read_text()
+    if '# CPU AI Lab ' not in content or not re.search(r'^APP_VERSION=\d+\.\d+\.\d+$',content,re.M) or 'update_from_github()' not in content:
+        raise ValueError('Not a CPU AI Lab launcher')
+except (OSError,ValueError,UnicodeError):
+    sys.exit(0) # Direct repair/install has no originating updater.
+temporary=None
+try:
+    fd,temporary=tempfile.mkstemp(prefix='.cpu-ai-update-',dir=target.parent)
+    with os.fdopen(fd,'wb') as stream:
+        stream.write(source.read_bytes());stream.flush();os.fsync(stream.fileno())
+    os.chmod(temporary,stat.S_IMODE(metadata.st_mode))
+    os.chown(temporary,metadata.st_uid,metadata.st_gid)
+    os.replace(temporary,target)
+    print('✅ Downloaded launcher updated: '+str(target))
+except OSError as error:
+    print('⚠️ App updated, but the downloaded launcher could not be refreshed: '+str(error),file=sys.stderr)
+    print('Open the current menu with: sudo cpu-ai',file=sys.stderr)
+finally:
+    if temporary and os.path.exists(temporary):os.unlink(temporary)
+PY
+}
 update_from_github() {
   CPU_AI_UPDATE_TMP=$(mktemp -d)
   trap 'rm -rf -- "${CPU_AI_UPDATE_TMP:?}"' EXIT
@@ -203,5 +243,5 @@ for line in (folder/'SHA256SUMS.txt').read_text().splitlines():
 if len(matches)!=1 or hashlib.sha256((folder/'install.sh').read_bytes()).hexdigest()!=matches[0]:raise SystemExit('Installer SHA-256 check failed')
 print('GitHub release installer checksum verified.')
 PY
-  bash "$CPU_AI_UPDATE_TMP/install.sh" --apply-update
+  CPU_AI_UPDATE_SOURCE="$SCRIPT_PATH" bash "$CPU_AI_UPDATE_TMP/install.sh" --apply-update
 }

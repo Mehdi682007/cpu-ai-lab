@@ -67,7 +67,12 @@ show_menu() {
       0) return 0 ;;
       *) echo 'Choose 0 to 8.'; continue ;;
     esac
-    if bash "$SCRIPT_PATH" "$ACTION"; then :; else echo '❌ Operation failed. Read the error above.'; fi
+    if bash "$SCRIPT_PATH" "$ACTION"; then
+      if [[ "$ACTION" == --update ]]; then
+        echo '✅ Update completed. Reloading the current menu...'
+        exec bash "$SCRIPT_PATH" --menu
+      fi
+    else echo '❌ Operation failed. Read the error above.'; fi
     read -r -p 'Press Enter to return to the menu...' _ || return 0
   done
 }
@@ -75,7 +80,8 @@ case "${1:-menu}" in
   menu|--menu) show_menu ;;
   --install) install_app ;;
   --update) require_app; update_from_github ;;
-  --apply-update|--repair) require_app; install_app ;;
+  --apply-update) require_app; CPU_AI_APPLY_UPDATE=1; install_app ;;
+  --repair) require_app; install_app ;;
   --access) access_info ;;
   --public|--local)
     require_app

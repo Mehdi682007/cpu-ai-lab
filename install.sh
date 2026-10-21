@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# CPU AI Lab 0.3.2 - menu-driven, CPU-only personal AI server.
+# CPU AI Lab 0.3.3 - menu-driven, CPU-only personal AI server.
 # Download this file, inspect it, then run: sudo bash install-cpu-ai.sh
 set -Eeuo pipefail
 export LC_ALL=C
@@ -9,7 +9,7 @@ APP=/opt/cpu-ai
 OLLAMA_PIN=0.40.6
 fail() { printf '\n❌ ERROR: %s\n' "$*" >&2; exit 1; }
 [[ $EUID -eq 0 ]] || fail "Run with sudo bash $0"
-APP_VERSION=0.3.2
+APP_VERSION=0.3.3
 SCRIPT_PATH=$(readlink -f "${BASH_SOURCE[0]}")
 
 # User-supplied ANSI artwork. Keep escapes as text until printing to a terminal.
@@ -194,7 +194,7 @@ import urllib.request
 from pathlib import Path
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
-VERSION = '0.3.2'
+VERSION = '0.3.3'
 MODEL = os.environ.get('CPU_AI_MODEL', 'qwen2.5:1.5b')
 THREADS = max(1, int(os.environ.get('CPU_AI_THREADS', '2')))
 CONTEXT = max(2048, min(8192, int(os.environ.get('CPU_AI_CONTEXT', '4096'))))
@@ -729,6 +729,7 @@ if [[ "$SCRIPT_PATH" != /usr/local/bin/cpu-ai ]]; then
   install -m 755 "$SCRIPT_PATH" /usr/local/bin/cpu-ai
 fi
 configure_access "$SAVED_ACCESS_MODE"
+if [[ "${CPU_AI_APPLY_UPDATE:-0}" == 1 ]]; then sync_update_launcher; fi
 show_install_summary
 }
 
@@ -906,6 +907,46 @@ EOF
   echo "Public chat: https://$PUBLIC_ADDRESS:5555"
   echo 'View your private login with: sudo cpu-ai --access'
 }
+sync_update_launcher() {
+  # Recover the caller for upgrades from releases that did not pass its path.
+  python3 - "$SCRIPT_PATH" "$PPID" "${CPU_AI_UPDATE_SOURCE:-}" <<'PY'
+import os,re,stat,sys,tempfile
+from pathlib import Path
+source=Path(sys.argv[1]).resolve()
+try:
+    candidate=sys.argv[3]
+    if not candidate:
+        args=Path('/proc/'+sys.argv[2]+'/cmdline').read_bytes().split(b'\0')
+        if len(args)<3 or Path(os.fsdecode(args[0])).name not in ('bash','bash.exe') or b'--update' not in args:
+            raise ValueError('No Bash updater parent')
+        candidate=os.fsdecode(args[1])
+        if not os.path.isabs(candidate):
+            candidate=os.path.join(os.readlink('/proc/'+sys.argv[2]+'/cwd'),candidate)
+    target=Path(candidate).resolve(strict=True)
+    if target==source or target==Path('/usr/local/bin/cpu-ai'):sys.exit(0)
+    metadata=target.stat()
+    if not stat.S_ISREG(metadata.st_mode):raise ValueError('Not a regular installer')
+    content=target.read_text()
+    if '# CPU AI Lab ' not in content or not re.search(r'^APP_VERSION=\d+\.\d+\.\d+$',content,re.M) or 'update_from_github()' not in content:
+        raise ValueError('Not a CPU AI Lab launcher')
+except (OSError,ValueError,UnicodeError):
+    sys.exit(0) # Direct repair/install has no originating updater.
+temporary=None
+try:
+    fd,temporary=tempfile.mkstemp(prefix='.cpu-ai-update-',dir=target.parent)
+    with os.fdopen(fd,'wb') as stream:
+        stream.write(source.read_bytes());stream.flush();os.fsync(stream.fileno())
+    os.chmod(temporary,stat.S_IMODE(metadata.st_mode))
+    os.chown(temporary,metadata.st_uid,metadata.st_gid)
+    os.replace(temporary,target)
+    print('✅ Downloaded launcher updated: '+str(target))
+except OSError as error:
+    print('⚠️ App updated, but the downloaded launcher could not be refreshed: '+str(error),file=sys.stderr)
+    print('Open the current menu with: sudo cpu-ai',file=sys.stderr)
+finally:
+    if temporary and os.path.exists(temporary):os.unlink(temporary)
+PY
+}
 update_from_github() {
   CPU_AI_UPDATE_TMP=$(mktemp -d)
   trap 'rm -rf -- "${CPU_AI_UPDATE_TMP:?}"' EXIT
@@ -937,7 +978,7 @@ for line in (folder/'SHA256SUMS.txt').read_text().splitlines():
 if len(matches)!=1 or hashlib.sha256((folder/'install.sh').read_bytes()).hexdigest()!=matches[0]:raise SystemExit('Installer SHA-256 check failed')
 print('GitHub release installer checksum verified.')
 PY
-  bash "$CPU_AI_UPDATE_TMP/install.sh" --apply-update
+  CPU_AI_UPDATE_SOURCE="$SCRIPT_PATH" bash "$CPU_AI_UPDATE_TMP/install.sh" --apply-update
 }
 
 is_installed() { [[ -f "$APP/.managed" && -f "$APP/chat.py" ]]; }
@@ -1009,7 +1050,12 @@ show_menu() {
       0) return 0 ;;
       *) echo 'Choose 0 to 8.'; continue ;;
     esac
-    if bash "$SCRIPT_PATH" "$ACTION"; then :; else echo '❌ Operation failed. Read the error above.'; fi
+    if bash "$SCRIPT_PATH" "$ACTION"; then
+      if [[ "$ACTION" == --update ]]; then
+        echo '✅ Update completed. Reloading the current menu...'
+        exec bash "$SCRIPT_PATH" --menu
+      fi
+    else echo '❌ Operation failed. Read the error above.'; fi
     read -r -p 'Press Enter to return to the menu...' _ || return 0
   done
 }
@@ -1017,7 +1063,8 @@ case "${1:-menu}" in
   menu|--menu) show_menu ;;
   --install) install_app ;;
   --update) require_app; update_from_github ;;
-  --apply-update|--repair) require_app; install_app ;;
+  --apply-update) require_app; CPU_AI_APPLY_UPDATE=1; install_app ;;
+  --repair) require_app; install_app ;;
   --access) access_info ;;
   --public|--local)
     require_app

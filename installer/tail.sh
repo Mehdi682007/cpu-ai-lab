@@ -66,5 +66,6 @@ if [[ "$SCRIPT_PATH" != /usr/local/bin/cpu-ai ]]; then
   install -m 755 "$SCRIPT_PATH" /usr/local/bin/cpu-ai
 fi
 configure_access "$SAVED_ACCESS_MODE"
+if [[ "${CPU_AI_APPLY_UPDATE:-0}" == 1 ]]; then sync_update_launcher; fi
 show_install_summary
 }
