@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# CPU AI Lab 0.3.1 - menu-driven, CPU-only personal AI server.
+# CPU AI Lab 0.3.2 - menu-driven, CPU-only personal AI server.
 # Download this file, inspect it, then run: sudo bash install-cpu-ai.sh
 set -Eeuo pipefail
 export LC_ALL=C
@@ -9,7 +9,7 @@ APP=/opt/cpu-ai
 OLLAMA_PIN=0.40.6
 fail() { printf '\n❌ ERROR: %s\n' "$*" >&2; exit 1; }
 [[ $EUID -eq 0 ]] || fail "Run with sudo bash $0"
-APP_VERSION=0.3.1
+APP_VERSION=0.3.2
 SCRIPT_PATH=$(readlink -f "${BASH_SOURCE[0]}")
 
 # User-supplied ANSI artwork. Keep escapes as text until printing to a terminal.
@@ -194,7 +194,7 @@ import urllib.request
 from pathlib import Path
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
-VERSION = '0.3.1'
+VERSION = '0.3.2'
 MODEL = os.environ.get('CPU_AI_MODEL', 'qwen2.5:1.5b')
 THREADS = max(1, int(os.environ.get('CPU_AI_THREADS', '2')))
 CONTEXT = max(2048, min(8192, int(os.environ.get('CPU_AI_CONTEXT', '4096'))))
@@ -437,7 +437,8 @@ class Handler(BaseHTTPRequestHandler):
                         duration = data.get('eval_duration', 0)/1e9
                         event.update(done=True, tokens=data.get('eval_count', 0),
                             tokens_per_second=data.get('eval_count', 0)/duration if duration else 0,
-                            truncated=data.get('done_reason') == 'length',
+                            truncated=(data.get('done_reason') == 'length' or
+                                       (not data.get('done_reason') and data.get('eval_count', 0) >= output)),
                             done_reason=data.get('done_reason', 'stop'), context_trimmed=trimmed,
                             ttft_seconds=round(first, 2) if first is not None else None,
                             wall_seconds=round(time.monotonic()-start, 2), max_tokens=output)
@@ -474,7 +475,7 @@ cat > "$APP/index.html" <<'CPU_AI_PYTHON'
 <head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>CPU AI Lab · چت شخصی</title>
 <style>
 :root{color-scheme:dark;--bg:#0c1220;--panel:#121d30;--line:#25334b;--muted:#a4b1c8;--green:#7ee4be;--text:#eef3fc}
-*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:15px/1.9 Tahoma,Arial,sans-serif}button,textarea,select{font:inherit}button{cursor:pointer}button:disabled{opacity:.45;cursor:default}button:focus-visible,select:focus-visible,textarea:focus{outline:2px solid var(--green);outline-offset:2px}main{max-width:980px;margin:auto;padding:26px 22px 40px}header{display:flex;justify-content:space-between;gap:16px;align-items:center;padding-bottom:22px;border-bottom:1px solid var(--line)}h1{margin:0;font-size:24px}small,.muted{color:var(--muted)}.brand{color:var(--green);font:bold 11px Arial;letter-spacing:2px}.pill{font-size:12px;border:1px solid var(--line);border-radius:30px;padding:4px 12px;white-space:nowrap}.online{color:var(--green)}.offline{color:#f7b9b9}.toolbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:18px 0}.toolbar .model{margin-left:auto;font:12px/1.8 Consolas,monospace;color:var(--muted);direction:ltr}.ghost{background:transparent;color:var(--muted);border:1px solid var(--line);border-radius:9px;padding:5px 12px}.welcome{text-align:center;padding:40px 0 26px}.welcome h2{font-size:25px;margin:8px 0}.welcome p{color:var(--muted);margin:0}.examples{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:24px 0}.example{background:var(--panel);border:1px solid var(--line);color:var(--text);border-radius:12px;text-align:right;padding:15px;font-size:13px}.example span{display:block;color:var(--green);font-size:12px;margin-bottom:5px}#chat{min-height:80px}.message{margin:18px 0;border:1px solid var(--line);border-radius:14px;background:var(--panel);overflow:hidden}.message.user{background:#153137;border-color:#27444a;margin-right:10%}.message-head{display:flex;align-items:center;justify-content:space-between;padding:10px 16px;border-bottom:1px solid #ffffff08;color:var(--muted);font-size:12px}.message.user .message-head{color:#b1ded3}.content{padding:15px 18px;overflow-wrap:anywhere}.prose{white-space:pre-wrap;unicode-bidi:plaintext}.code{margin:12px 0;background:#080e19;border:1px solid #2c3d59;border-radius:10px;overflow:hidden;direction:ltr;text-align:left}.code-head{padding:7px 12px;display:flex;justify-content:space-between;border-bottom:1px solid #26344b;color:#9bb4d8;font:12px Consolas,monospace}.copy{background:none;border:0;color:var(--green);font:12px Tahoma;cursor:pointer}.code pre{margin:0;padding:16px;overflow:auto;tab-size:2;white-space:pre;font:13px/1.8 Consolas,'Courier New',monospace}.message-foot{padding:0 18px 12px;color:var(--muted);font-size:11px}.notice{border:1px solid #80632f;background:#2a2317;color:#f4d491;border-radius:10px;padding:10px 14px;margin:12px 0;font-size:13px}.error{color:#ffc1c1}.composer{margin-top:22px;background:var(--panel);border:1px solid var(--line);border-radius:15px;padding:16px}.options{display:flex;gap:14px;flex-wrap:wrap;margin-bottom:12px;font-size:12px;color:var(--muted)}select{background:#0c1627;color:var(--text);border:1px solid var(--line);padding:4px 8px;border-radius:7px;font-size:12px;margin-right:6px}textarea{width:100%;min-height:100px;max-height:320px;resize:vertical;background:transparent;border:0;color:var(--text);padding:8px;line-height:1.9}textarea:focus{outline-offset:0;border-radius:6px}.actions{display:flex;align-items:center;gap:8px;margin-top:10px}.primary{background:var(--green);color:#07271e;border:0;border-radius:9px;padding:8px 23px;font-weight:bold}.stop{background:#492a35;border:1px solid #78404f;color:#ffd4dc;border-radius:9px;padding:8px 18px}.hint{color:var(--muted);font-size:11px;margin-right:auto}.status{font-size:12px;color:var(--muted);min-height:26px;margin-top:10px}footer{font-size:11px;color:#8796b0;text-align:center;margin-top:20px}#continue{display:block;margin:12px auto;color:var(--green)}[hidden]{display:none!important}@media(max-width:620px){main{padding:18px 14px}h1{font-size:20px}.examples{grid-template-columns:1fr}.welcome{padding-top:22px}.message.user{margin-right:4%}.hint{display:none}.toolbar .model{width:100%;order:3}.content{padding:12px}.code pre{font-size:12px}header{gap:8px}}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:15px/1.9 Tahoma,Arial,sans-serif}button,textarea,select{font:inherit}button{cursor:pointer}button:disabled{opacity:.45;cursor:default}button:focus-visible,select:focus-visible,textarea:focus{outline:2px solid var(--green);outline-offset:2px}main{max-width:980px;margin:auto;padding:26px 22px 40px}header{display:flex;justify-content:space-between;gap:16px;align-items:center;padding-bottom:22px;border-bottom:1px solid var(--line)}h1{margin:0;font-size:24px}small,.muted{color:var(--muted)}.brand{color:var(--green);font:bold 11px Arial;letter-spacing:2px}.pill{font-size:12px;border:1px solid var(--line);border-radius:30px;padding:4px 12px;white-space:nowrap}.online{color:var(--green)}.offline{color:#f7b9b9}.toolbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:18px 0}.toolbar .model{margin-left:auto;font:12px/1.8 Consolas,monospace;color:var(--muted);direction:ltr}.ghost{background:transparent;color:var(--muted);border:1px solid var(--line);border-radius:9px;padding:5px 12px}.welcome{text-align:center;padding:40px 0 26px}.welcome h2{font-size:25px;margin:8px 0}.welcome p{color:var(--muted);margin:0}.examples{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:24px 0}.example{background:var(--panel);border:1px solid var(--line);color:var(--text);border-radius:12px;text-align:right;padding:15px;font-size:13px}.example span{display:block;color:var(--green);font-size:12px;margin-bottom:5px}#chat{min-height:80px}.message{margin:18px 0;border:1px solid var(--line);border-radius:14px;background:var(--panel);overflow:hidden}.message.user{background:#153137;border-color:#27444a;margin-right:10%}.message-head{display:flex;align-items:center;justify-content:space-between;padding:10px 16px;border-bottom:1px solid #ffffff08;color:var(--muted);font-size:12px}.message.user .message-head{color:#b1ded3}.content{padding:15px 18px;overflow-wrap:anywhere}.prose{white-space:pre-wrap;unicode-bidi:plaintext}.code{margin:12px 0;background:#080e19;border:1px solid #2c3d59;border-radius:10px;overflow:hidden;direction:ltr;text-align:left}.code-head{padding:7px 12px;display:flex;justify-content:space-between;border-bottom:1px solid #26344b;color:#9bb4d8;font:12px Consolas,monospace}.copy{background:none;border:0;color:var(--green);font:12px Tahoma;cursor:pointer}.code pre{margin:0;padding:16px;overflow:auto;tab-size:2;white-space:pre;font:13px/1.8 Consolas,'Courier New',monospace}.message-foot{padding:0 18px 12px;color:var(--muted);font-size:11px}.metrics{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0 0}.metric{background:#0c1627;border:1px solid var(--line);border-radius:8px;padding:4px 10px}.metric strong{color:var(--green);font-size:13px}.notice{border:1px solid #80632f;background:#2a2317;color:#f4d491;border-radius:10px;padding:10px 14px;margin:12px 0;font-size:13px}.error{color:#ffc1c1}.composer{margin-top:22px;background:var(--panel);border:1px solid var(--line);border-radius:15px;padding:16px}.options{display:flex;gap:14px;flex-wrap:wrap;margin-bottom:12px;font-size:12px;color:var(--muted)}select{background:#0c1627;color:var(--text);border:1px solid var(--line);padding:4px 8px;border-radius:7px;font-size:12px;margin-right:6px}textarea{width:100%;min-height:100px;max-height:320px;resize:vertical;background:transparent;border:0;color:var(--text);padding:8px;line-height:1.9}textarea:focus{outline-offset:0;border-radius:6px}.actions{display:flex;align-items:center;gap:8px;margin-top:10px}.primary{background:var(--green);color:#07271e;border:0;border-radius:9px;padding:8px 23px;font-weight:bold}.stop{background:#492a35;border:1px solid #78404f;color:#ffd4dc;border-radius:9px;padding:8px 18px}.hint{color:var(--muted);font-size:11px;margin-right:auto}.status{font-size:12px;color:var(--muted);min-height:26px;margin-top:10px}footer{font-size:11px;color:#8796b0;text-align:center;margin-top:20px}#continue{display:block;margin:12px auto;color:var(--green)}[hidden]{display:none!important}@media(max-width:620px){main{padding:18px 14px}h1{font-size:20px}.examples{grid-template-columns:1fr}.welcome{padding-top:22px}.message.user{margin-right:4%}.hint{display:none}.toolbar .model{width:100%;order:3}.content{padding:12px}.code pre{font-size:12px}header{gap:8px}}
 </style></head>
 <body><main>
 <header><div><div class="brand">CPU AI LAB / 03</div><h1>دستیار شخصی شما</h1><small>اجرا روی سرور خودتان · بدون GPU</small></div><span id="health" class="pill">در حال اتصال…</span></header>
@@ -495,6 +496,10 @@ function render(target,text){target.replaceChildren();const pattern=/```([^\n`]*
 function prose(value){if(!value)return;const p=document.createElement('div');p.className='prose';p.textContent=value;target.append(p);}
 while((match=pattern.exec(text))!==null){prose(text.slice(offset,match.index));const code=document.createElement('div');code.className='code';const head=document.createElement('div');head.className='code-head';const lang=document.createElement('span');lang.textContent=match[1].trim()||'code';const button=document.createElement('button');button.type='button';button.className='copy';button.textContent='کپی';const source=match[2];button.onclick=()=>copy(source,button);head.append(lang,button);const pre=document.createElement('pre');const node=document.createElement('code');node.textContent=source;pre.append(node);code.append(head,pre);target.append(code);offset=pattern.lastIndex;}prose(text.slice(offset));}
 function add(role,text){$('welcome').hidden=true;const box=document.createElement('article');box.className='message '+role;const head=document.createElement('div');head.className='message-head';const name=document.createElement('span');name.textContent=role==='user'?'شما':'دستیار';const button=document.createElement('button');button.type='button';button.className='copy';button.textContent='کپی';const body=document.createElement('div');body.className='content';const foot=document.createElement('div');foot.className='message-foot';const view={box,body,foot,text};button.onclick=()=>copy(view.text,button);head.append(name,button);box.append(head,body,foot);$('chat').append(box);render(body,text);return view;}
+function showMetrics(view,stats){
+view.foot.replaceChildren();const metrics=document.createElement('div');metrics.className='metrics';
+for(const [label,value] of [['⏱ زمان کل',stats.wall_seconds.toFixed(1)+' ثانیه'],['⚡ سرعت تولید',stats.tokens_per_second.toFixed(1)+' توکن/ثانیه'],['📝 خروجی',stats.tokens+' توکن']]){const item=document.createElement('span');item.className='metric';item.append(document.createTextNode(label+': '));const strong=document.createElement('strong');strong.textContent=value;item.append(strong);metrics.append(item);}view.foot.append(metrics);const note=document.createElement('div');note.textContent='آمار همین مرحله از پاسخ · زمان کل شامل آماده‌سازی مدل است؛ سرعت مربوط به تولید متن است.';view.foot.append(note);
+}
 function setBusy(value){busy=value;for(const id of ['send','new','mode','length','continue','download','logout'])$(id).disabled=value;$('prompt').disabled=value;$('stop').hidden=!value;for(const button of document.querySelectorAll('[data-prompt]'))button.disabled=value;}
 function continuationAvailable(){return messages.length&&messages[messages.length-1].role==='assistant';}
 async function submit(continuing=false){if(busy)return;const prompt=$('prompt').value.trim();if(!continuing&&!prompt)return;if(continuing&&!continuationAvailable())return;
@@ -510,10 +515,10 @@ function event(line){if(!line.trim())return;const data=JSON.parse(line);if(data.
 while(true){const chunk=await reader.read();if(chunk.done){pending+=decoder.decode();if(pending.trim())event(pending);break;}pending+=decoder.decode(chunk.value,{stream:true});let split;while((split=pending.indexOf('\n'))>=0){const line=pending.slice(0,split);pending=pending.slice(split+1);event(line);}}
 if(!done)throw Error('ارتباط قبل از پایان پاسخ قطع شد.');update();
 if(continuing)messages[messages.length-1].content=view.text;else messages=history.concat([{role:'assistant',content:text}]);messages=messages.slice(-10);
-const elapsed=((performance.now()-start)/1000).toFixed(1);view.foot.textContent=elapsed+' ثانیه · '+stats.tokens_per_second.toFixed(1)+' توکن/ثانیه · '+stats.tokens+' توکن';
+showMetrics(view,stats);
 $('status').textContent='پاسخ دریافت شد. '+(stats.ttft_seconds===null?'':'شروع پاسخ پس از '+stats.ttft_seconds+' ثانیه.');
 $('continue').hidden=false;
-if(stats.truncated){notice('پاسخ به سقف طول انتخاب‌شده رسید و ممکن است ناقص باشد. برای دریافت بقیه، «ادامه پاسخ» را بزنید.');$('continue').hidden=false;}
+if(stats.truncated){notice('⚠️ پاسخ به محدودیت '+stats.max_tokens+' توکن رسید و ممکن است متن یا کد ناقص باشد. برای دریافت بقیه، «ادامه پاسخ» را بزنید.');$('continue').hidden=false;}
 else if((view.text.match(/```/g)||[]).length%2){notice('بخش کد بسته نشده و ممکن است ناقص باشد؛ می‌توانید ادامه پاسخ را درخواست کنید.');}
 else if(stats.context_trimmed){notice('برای جا شدن در حافظه گفت‌وگو، بخشی از پیام‌های قدیمی از ورودی مدل کنار گذاشته شد.');}
 }catch(error){update();if(text){if(continuing)messages[messages.length-1].content=view.text;else messages=history.concat([{role:'assistant',content:text}]);$('continue').hidden=false;}
@@ -724,13 +729,31 @@ if [[ "$SCRIPT_PATH" != /usr/local/bin/cpu-ai ]]; then
   install -m 755 "$SCRIPT_PATH" /usr/local/bin/cpu-ai
 fi
 configure_access "$SAVED_ACCESS_MODE"
-echo "🎛️  Open the management menu anytime: sudo cpu-ai"
+show_install_summary
 }
 
 # Network profiles. The model API always stays on loopback.
 access_info() {
   require_app
   if grep -q "^CPU_AI_ACCESS_MODE=public$" "$APP/config.env" && [[ -f /etc/cpu-ai/access.txt ]]; then cat /etc/cpu-ai/access.txt; else echo 'Local profile: http://localhost:5555 (no login)'; fi
+}
+show_install_summary() {
+  printf '\n============================================================\n'
+  printf '  ✅ CPU AI Lab v%s is ready!\n' "$APP_VERSION"
+  if grep -q '^CPU_AI_ACCESS_MODE=public$' "$APP/config.env"; then
+    local HOST
+    HOST=$(sed -n 's/^CPU_AI_PUBLIC_HOST=//p' "$APP/config.env")
+    printf '  🌐 Open chat: https://%s\n' "$HOST"
+    printf '  🔐 Login: sudo cpu-ai --access\n'
+    printf '     Credentials are private: /etc/cpu-ai/access.txt\n'
+    printf '  🔓 Keep TCP 80 open for HTTPS renewal; chat uses TCP 5555.\n'
+  else
+    printf '  🌐 Open chat: http://localhost:5555\n'
+    printf '  🏠 Local access only; no web login required.\n'
+  fi
+  printf '  🎛️  Management menu: sudo cpu-ai\n'
+  printf '  📊 Service status: sudo cpu-ai --status\n'
+  printf '============================================================\n\n'
 }
 configure_access() {
   local MODE="${1:-auto}"

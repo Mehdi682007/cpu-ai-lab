@@ -66,5 +66,5 @@ if [[ "$SCRIPT_PATH" != /usr/local/bin/cpu-ai ]]; then
   install -m 755 "$SCRIPT_PATH" /usr/local/bin/cpu-ai
 fi
 configure_access "$SAVED_ACCESS_MODE"
-echo "🎛️  Open the management menu anytime: sudo cpu-ai"
+show_install_summary
 }

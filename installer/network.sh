@@ -3,6 +3,24 @@ access_info() {
   require_app
   if grep -q "^CPU_AI_ACCESS_MODE=public$" "$APP/config.env" && [[ -f /etc/cpu-ai/access.txt ]]; then cat /etc/cpu-ai/access.txt; else echo 'Local profile: http://localhost:5555 (no login)'; fi
 }
+show_install_summary() {
+  printf '\n============================================================\n'
+  printf '  ✅ CPU AI Lab v%s is ready!\n' "$APP_VERSION"
+  if grep -q '^CPU_AI_ACCESS_MODE=public$' "$APP/config.env"; then
+    local HOST
+    HOST=$(sed -n 's/^CPU_AI_PUBLIC_HOST=//p' "$APP/config.env")
+    printf '  🌐 Open chat: https://%s\n' "$HOST"
+    printf '  🔐 Login: sudo cpu-ai --access\n'
+    printf '     Credentials are private: /etc/cpu-ai/access.txt\n'
+    printf '  🔓 Keep TCP 80 open for HTTPS renewal; chat uses TCP 5555.\n'
+  else
+    printf '  🌐 Open chat: http://localhost:5555\n'
+    printf '  🏠 Local access only; no web login required.\n'
+  fi
+  printf '  🎛️  Management menu: sudo cpu-ai\n'
+  printf '  📊 Service status: sudo cpu-ai --status\n'
+  printf '============================================================\n\n'
+}
 configure_access() {
   local MODE="${1:-auto}"
   [[ "$MODE" != auto ]] || { if grep -qi microsoft /proc/sys/kernel/osrelease; then MODE=local; else MODE=public; fi; }

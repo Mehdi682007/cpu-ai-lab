@@ -14,7 +14,7 @@ import urllib.request
 from pathlib import Path
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
-VERSION = '0.3.1'
+VERSION = '0.3.2'
 MODEL = os.environ.get('CPU_AI_MODEL', 'qwen2.5:1.5b')
 THREADS = max(1, int(os.environ.get('CPU_AI_THREADS', '2')))
 CONTEXT = max(2048, min(8192, int(os.environ.get('CPU_AI_CONTEXT', '4096'))))
@@ -257,7 +257,8 @@ class Handler(BaseHTTPRequestHandler):
                         duration = data.get('eval_duration', 0)/1e9
                         event.update(done=True, tokens=data.get('eval_count', 0),
                             tokens_per_second=data.get('eval_count', 0)/duration if duration else 0,
-                            truncated=data.get('done_reason') == 'length',
+                            truncated=(data.get('done_reason') == 'length' or
+                                       (not data.get('done_reason') and data.get('eval_count', 0) >= output)),
                             done_reason=data.get('done_reason', 'stop'), context_trimmed=trimmed,
                             ttft_seconds=round(first, 2) if first is not None else None,
                             wall_seconds=round(time.monotonic()-start, 2), max_tokens=output)

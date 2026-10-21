@@ -11,12 +11,13 @@ spec=importlib.util.spec_from_file_location('cpu_ai_chat',Path(__file__).resolve
 app=importlib.util.module_from_spec(spec);spec.loader.exec_module(app)
 seen=[]
 entered=threading.Event();release=threading.Event()
+completion_reason="length"; completion_count=512
 class Upstream(io.BytesIO):
     def __init__(self,payload):
         self.payload=payload
         events=[{'message':{'content':'<script>alert(1)</script>\n```css\nleft'}},
-                {'message':{'content':': 50%;\n```'},'done':True,'done_reason':'length',
-                 'eval_count':512,'eval_duration':2000000000}]
+                {'message':{'content':': 50%;\n```'},'done':True,'done_reason':completion_reason,
+                 'eval_count':completion_count,'eval_duration':2000000000}]
         super().__init__(''.join(json.dumps(e)+'\n' for e in events).encode())
     def __enter__(self):
         if self.payload['messages'][-1]['content']=='SLOW':entered.set();release.wait(10)
@@ -43,6 +44,14 @@ assert seen[-1]['options']['num_predict']==2048 and seen[-1]['options']['num_ctx
 assert seen[-1]['options']['num_batch']==128 and seen[-1]['options']['num_gpu']==0
 assert '<script>' in rows[0]['token'] # frontend must render this as text, not HTML
 print('PASS: long-output configuration and explicit truncation event')
+assert rows[-1]['tokens_per_second']==256 and rows[-1]['wall_seconds']>=0
+for completion_reason,completion_count,expected in [(None,2048,True),(None,100,False),('stop',2048,False)]:
+    status,raw=call('/chat',base);assert status==200
+    event=json.loads(raw.splitlines()[-1]);assert event['truncated'] is expected
+    assert event['max_tokens']==2048 and event['tokens']==completion_count
+completion_reason='length';completion_count=512
+print('PASS: timing metrics and legacy completion-limit detection without mislabeling normal stops')
+
 continuation={'messages':[{'role':'user','content':'Build CSS'},{'role':'assistant','content':'```css\nleft'},
                          {'role':'user','content':'Continue exactly'}], 'continuing':True,'max_tokens':1024}
 assert call('/chat',continuation)[0]==200
